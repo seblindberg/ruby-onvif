@@ -6,7 +6,7 @@ module ONVIF
       include Service
 
       MULTICAST_ADDR = '239.255.255.250'
-      BIND_ADDR = '0.0.0.0'
+      BIND_ADDR = '239.255.255.250'
       PORT = 3702
 
       def initialize
