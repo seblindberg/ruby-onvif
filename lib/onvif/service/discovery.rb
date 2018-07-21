@@ -6,7 +6,7 @@ module ONVIF
       include Service
 
       MULTICAST_ADDR = '239.255.255.250'
-      BIND_ADDR = '239.255.255.250'
+      BIND_ADDR = '0.0.0.0'
       PORT = 3702
 
       def initialize
@@ -23,6 +23,8 @@ module ONVIF
                      IPAddr.new(BIND_ADDR).hton
 
         socket.setsockopt :IPPROTO_IP, :IP_ADD_MEMBERSHIP, membership
+        socket.setsockopt :IPPROTO_IP, :IP_MULTICAST_TTL, 1
+        socket.setsockopt :SOL_SOCKET, :SO_REUSEPORT, 1
         socket.bind BIND_ADDR, PORT
 
         [socket]
