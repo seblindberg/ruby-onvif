@@ -5,14 +5,12 @@ module ONVIF
     class Discovery
       include Service
 
-      HOST = '239.255.255.250'
+      MULTICAST_ADDR = '239.255.255.250'
+      BIND_ADDR = '0.0.0.0'
       PORT = 3702
 
       def initialize
-        @d_socket = UDPSocket.new
-        @r_socket = UDPSocket.new
-
-        @d_socket.bind HOST, PORT
+        @reply_socket = UDPSocket.new
 
         freeze
       end
@@ -20,16 +18,25 @@ module ONVIF
       # @return [Array<Socket>] an array of sockets that the service wants
       #   handled.
       def sockets
-        [@d_socket]
+        socket = UDPSocket.new
+        membership = IPAddr.new(MULTICAST_ADDR).hton +
+                     IPAddr.new(BIND_ADDR).hton
+
+        socket.setsockopt :IPPROTO_IP, :IP_ADD_MEMBERSHIP, membership
+        socket.bind BIND_ADDR, PORT
+
+        [socket]
       end
 
       # @param  socket [Socket] the socket that received an event.
       def handle(socket, _logger)
-        raise UnknownSocket, socket unless @d_socket == socket
-
-        msg, = @d_socket.recvfrom 4096
+        msg, = socket.recvfrom 4096
 
         p msg
+      end
+
+      def close
+        @reply_socket.close
       end
     end
   end

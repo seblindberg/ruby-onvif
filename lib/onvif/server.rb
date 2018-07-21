@@ -6,6 +6,7 @@ module ONVIF
     attr_reader :logger
 
     def initialize(services, logger: Logger.new(STDOUT))
+      @services     = services
       @logger       = logger
       @socket_table = {}
 
@@ -14,15 +15,21 @@ module ONVIF
 
     def run
       sockets = @socket_table.keys
+      logger.info 'ONVIF Server now listening...'
 
       loop do
         events, = IO.select(sockets)
         socket, = events
         service = @socket_table.fetch socket
 
-        logger.info "Req #{socket.remote_address.inspect} -> #{service.inspect}"
+        logger.debug { "Req #{socket.inspect} -> #{service.inspect}" }
         service.handle socket, logger
       end
+    rescue Interrupt
+      logger.info 'Closing...'
+    ensure
+      sockets.map(&:close)
+      @services.map(&:close)
     end
 
     private

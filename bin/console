@@ -12,4 +12,8 @@ require 'onvif'
 # Pry.start
 
 require 'irb'
-IRB.start(__FILE__)
+
+service = ONVIF::Service::HTTP.new
+server  = ONVIF::Server.new [service]
+server.run
+# IRB.start(__FILE__)

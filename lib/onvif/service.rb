@@ -12,5 +12,7 @@ module ONVIF
     def sockets
       []
     end
+
+    def close; end
   end
 end
