@@ -6,11 +6,14 @@ module ONVIF
       include Service
 
       MULTICAST_ADDR = '239.255.255.250'
-      BIND_ADDR = '0.0.0.0'
       PORT = 3702
 
-      def initialize
+      PACKET_SIZE = 1024
+      private_constant :PACKET_SIZE
+
+      def initialize(local_address: auto_select_address)
         @reply_socket = UDPSocket.new
+        @local_address = local_address
 
         freeze
       end
@@ -19,26 +22,33 @@ module ONVIF
       #   handled.
       def sockets
         socket = UDPSocket.new
-        membership = IPAddr.new(MULTICAST_ADDR).hton +
-                     IPAddr.new(BIND_ADDR).hton
+        socket.setsockopt :SOL_SOCKET, :SO_REUSEADDR, true
+        socket.bind MULTICAST_ADDR, PORT
 
+        membership = IPAddr.new(MULTICAST_ADDR).hton +
+                     IPAddr.new(@local_address).hton
         socket.setsockopt :IPPROTO_IP, :IP_ADD_MEMBERSHIP, membership
-        socket.setsockopt :IPPROTO_IP, :IP_MULTICAST_TTL, 1
-        socket.setsockopt :SOL_SOCKET, :SO_REUSEPORT, 1
-        socket.bind BIND_ADDR, PORT
 
         [socket]
       end
 
       # @param  socket [Socket] the socket that received an event.
       def handle(socket, _logger)
-        msg, = socket.recvfrom 4096
+        msg, = socket.recvfrom PACKET_SIZE
 
         p msg
       end
 
       def close
         @reply_socket.close
+      end
+
+      private
+
+      def auto_select_address
+        addrinfo = Socket.ip_address_list.find(&:ipv4_private?)
+        return unless addrinfo
+        addrinfo.ip_address
       end
     end
   end
